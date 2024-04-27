@@ -6,6 +6,12 @@ use App\Models\Task;
 use Illuminate\Http\Request;
 use App\Services\TaskService;
 
+use App\Http\Resources\TaskResource;
+use App\Http\Resources\TaskCollection;
+
+use App\Http\Requests\Task\StoreRequest as TaskStoreRequest;
+use App\Http\Requests\Task\UpdateRequest as TaskUpdateRequest;
+
 class TaskController extends Controller
 {
     protected $taskService;
@@ -16,20 +22,38 @@ class TaskController extends Controller
 
     public function index() {
         $tasks = $this->taskService->getTasks();
-        return response()->json(['tasks' => $tasks]);
+        return response()->json([
+            'message' => 'Successfuly get the data.',
+            'tasks' => new TaskCollection($tasks)
+        ]);
     }
 
-    public function store(Request $request) {
+    public function show($id) {
+        $task = $this->taskService->getTask($id);
+        return response()->json([
+            'message' => 'Successfully get the data.',
+            'task' => TaskResource::make($task)
+        ]);
+    }
+
+    public function store(TaskStoreRequest $request) {
         $task = $this->taskService->createTask($request->all());
-        return response()->json(['task' => $task]);
+        return response()->json(['task' => TaskResource::make($task)]);
     }
 
-    public function update($id, Request $request) {
+    public function update($id, TaskUpdateRequest $request) {
         try {
             $task = $this->taskService->updateTask($id, $request->all());
-            return response()->json(['task' => $task]);
+            return response()->json(['task' => TaskResource::make($task)]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 404);
         }
+    }
+
+    public function destroy($id) {
+        $task = $this->taskService->deleteTask($id);
+        return response()->json([
+            'message' => 'Successfully delete the data.'
+        ]);
     }
 }

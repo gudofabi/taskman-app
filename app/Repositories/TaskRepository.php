@@ -15,6 +15,10 @@ class TaskRepository {
         return $this->model->all();
     }
 
+    public function paginate(int $perPage = 5) {
+        return $this->model->paginate(10);
+    }
+
     public function create(array $data) {
         return $this->model->create($data);
     }
@@ -26,5 +30,9 @@ class TaskRepository {
     public function update(Task $task, array $data) {
         $task->update($data);
         return $task;
+    }
+
+    public function delete(Task $task) {
+        $task->delete($task);
     }
 }
