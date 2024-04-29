@@ -16,7 +16,7 @@ class TaskRepository {
     }
 
     public function paginate(int $perPage = 5) {
-        return $this->model->paginate(10);
+        return $this->model->orderBy('created_at', 'desc')->paginate(10);
     }
 
     public function create(array $data) {

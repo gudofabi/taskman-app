@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Hash;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use App\Events\UserRegistered;
+use App\Events\UserLoggedIn;
 
 class AuthController extends Controller
 {
@@ -23,6 +25,8 @@ class AuthController extends Controller
                 'email' => $validatedData['email'],
                 'password' => Hash::make($validatedData['password']),
         ]);
+
+        event(new UserRegistered($user));
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -43,6 +47,7 @@ class AuthController extends Controller
         }
 
         $user = User::where('email', $request['email'])->firstOrFail();
+        event(new UserLoggedIn($user));
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
