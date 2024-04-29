@@ -3,15 +3,16 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-
-use App\Models\User;
-use Illuminate\Support\Facades\Auth;
-use App\Events\UserRegistered;
-use App\Events\UserLoggedIn;
+use App\Services\UserService;
 
 class AuthController extends Controller
 {
+    protected $userService;
+
+    public function __construct(UserService $userService) {
+        $this->userService = $userService;
+    }
+
     public function register(Request $request)
     {
         $validatedData = $request->validate([
@@ -20,50 +21,38 @@ class AuthController extends Controller
             'password' => 'required|string|min:8',
         ]);
 
-        $user = User::create([
-                'name' => $validatedData['name'],
-                'email' => $validatedData['email'],
-                'password' => Hash::make($validatedData['password']),
-        ]);
-
-        event(new UserRegistered($user));
-
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $registration = $this->userService->register($validatedData);
+        if (!$registration) {
+            return response()->json(['message' => 'Registration failed'], 400);
+        }
 
         return response()->json([
-            'access_token' => $token,
+            'access_token' => $registration['token'],
             'token_type' => 'Bearer',
+            'user' => $registration['user']
         ]);
     }
 
     public function login(Request $request)
     {
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        $credentials = $request->only('email', 'password');
+        $login = $this->userService->login($credentials);
 
-            return response()->json([
-                'message' => 'Invalid login details'
-            ], 401);
-
+        if (!$login) {
+            return response()->json(['message' => 'Invalid login details'], 401);
         }
 
-        $user = User::where('email', $request['email'])->firstOrFail();
-        event(new UserLoggedIn($user));
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
         return response()->json([
-                'user' => $user,
-                'access_token' => $token,
-                'token_type' => 'Bearer',
+            'user' => $login['user'],
+            'access_token' => $login['token'],
+            'token_type' => 'Bearer',
         ]);
     }
 
     public function logout(Request $request) 
     {
-        $request->user()->currentAccessToken()->delete();
-
-        return response()->json([
-            'message' => 'Successfully logged out!'
-        ], 200);
+        $this->userService->logout($request->user());
+        return response()->json(['message' => 'Successfully logged out!']);
     }
 }
+
